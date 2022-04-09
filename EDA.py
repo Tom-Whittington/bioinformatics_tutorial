@@ -1,77 +1,82 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[30]:
-
-
-# Install RDKit.
-#!pip install rdkit-pypi
-
-
-# In[31]:
-
 
 from rdkit import Chem
 from rdkit.Chem import Draw
-from rdkit.Chem.Draw import IPythonConsole
 from rdkit.Chem import Descriptors, Lipinski
 from rdkit.Chem import AllChem
 from rdkit import DataStructs
+from rdkit.Chem import PandasTools
 import numpy as np
 import pandas as pd
 
+df=pd.read_csv('CSV/coronavirus_CHEMBL3927_preprocessed.csv')
+print(df)
 
-# In[32]:
+def lipinksi(smiles, verbose = False):
 
+    moldata=[]
+    for elem in smiles:
+        mol=Chem.MolFromSmiles(elem)
+        moldata.append(mol)
 
-df=pd.read_csv('coronavirus_CHEMBL3927_preprocessed.csv')
+    baseData = np.arrange(1,1)
+    i=0
+    for mol in moldata:
 
+        desc_MolWt = Descriptors.MolWt(mol)
+        desc_MolLogP = Descriptors.MolLogP(mol)
+        desc_NumHDonors = Lipinksi.NumHdonors(mol)
+        desc_NumHAcceptors = Lipinski.NumHAcceptors(mol)
 
-# def lipinksi(smiles, verbose = False)
-# 
-#     moldata=[]
-#     for elem in smiles:
-#         mol=Chem.MolFromSmiles(elem)
-#         moldata.append(mol)
-#     
-#     baseData = np.arrange(1,1)
-#     i=0
-#     for mol in moldata:
-#         
-#         desc_MolWt = Descriptors.MolWt(mol)
-#         desc_MolLogP = Descriptors.MolLogP(mol)
-#         desc_NumHDonors = Lipinksi.NumHdonors(mol)
-#         desc_NumHAcceptors = Lipinski.NumHAcceptors(mol)
+# PandasTools.AddMoleculeColumnToFrame(df, smilesCol='canonical_smiles')
 
-# In[35]:
-
-
-mol_list = []
-for elem in df["canonical_smiles"]:
-    mol=Chem.MolFromSmiles(elem)
-    mol_list.append(mol)
+df["structure"]=df["canonical_smiles"].map(lambda x: Chem.MolFromSmiles(x))
+df["molwt"]=df["structure"].map(lambda x: Chem.Descriptors.MolWt(x))
+df["logp"]=df["structure"].map(lambda x: Chem.Descriptors.MolLogP(x))
+# df[["molwt", "logp", "numHdonor", "numHacceptor"]]=df["structure"].map(lambda x: [Chem.Descriptors.MolWt(x),)
 
 
-# In[38]:
+# mol_list = []
+# for elem in df["canonical_smiles"]:
+#     mol=Chem.MolFromSmiles(elem)
+#     mol_list.append(mol)
 
+# df["structure"]=mol_list
 
-mol_list[4]
+print(df)
 
+# MolWt_list = []
+# molLogP_list = []
+# molNumHDonor_list = []
+# molNumHAcceptor_list = []
+#
+# for mol in df["structure"]:
+#     molWt=Descriptors.MolWt(mol)
+#     molLogP = Descriptors.MolLogP(mol)
+#     molNumHDonor = Lipinksi.NumHdonors(mol)
+#     molNumHAcceptor = Lipinski.NumHAcceptors(mol)
 
-# In[ ]:
-
-
-desc_MolWt
-
-
-# In[ ]:
-
-
-desc_MolLogP
-
-
-# In[ ]:
-
-
-desc_NumHDonors
+#
+#
+# # In[38]:
+#
+#
+# mol_list[4]
+#
+#
+# # In[ ]:
+#
+#
+# desc_MolWt
+#
+#
+# # In[ ]:
+#
+#
+# desc_MolLogP
+#
+#
+# # In[ ]:
+#
+#
+# desc_NumHDonors
 
