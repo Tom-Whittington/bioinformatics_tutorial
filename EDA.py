@@ -2,81 +2,35 @@
 from rdkit import Chem
 from rdkit.Chem import Draw
 from rdkit.Chem import Descriptors, Lipinski
-from rdkit.Chem import AllChem
-from rdkit import DataStructs
-from rdkit.Chem import PandasTools
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
-df=pd.read_csv('CSV/coronavirus_CHEMBL3927_preprocessed.csv')
-print(df)
-
-def lipinksi(smiles, verbose = False):
-
-    moldata=[]
-    for elem in smiles:
-        mol=Chem.MolFromSmiles(elem)
-        moldata.append(mol)
-
-    baseData = np.arrange(1,1)
-    i=0
-    for mol in moldata:
-
-        desc_MolWt = Descriptors.MolWt(mol)
-        desc_MolLogP = Descriptors.MolLogP(mol)
-        desc_NumHDonors = Lipinksi.NumHdonors(mol)
-        desc_NumHAcceptors = Lipinski.NumHAcceptors(mol)
-
-# PandasTools.AddMoleculeColumnToFrame(df, smilesCol='canonical_smiles')
-
-df["structure"]=df["canonical_smiles"].map(lambda x: Chem.MolFromSmiles(x))
-df["molwt"]=df["structure"].map(lambda x: Chem.Descriptors.MolWt(x))
-df["logp"]=df["structure"].map(lambda x: Chem.Descriptors.MolLogP(x))
-# df[["molwt", "logp", "numHdonor", "numHacceptor"]]=df["structure"].map(lambda x: [Chem.Descriptors.MolWt(x),)
+pd.set_option('display.max_columns', 8)
 
 
-# mol_list = []
-# for elem in df["canonical_smiles"]:
-#     mol=Chem.MolFromSmiles(elem)
-#     mol_list.append(mol)
+def generate_descriptors(input_df):
+    """Generates structure from smiles and then uses structure to generate molecular descriptors"""
+    input_df["structure"] = input_df["canonical_smiles"].map(lambda x: Chem.MolFromSmiles(x))
+    input_df["mw"] = input_df["structure"].map(lambda x: Chem.Descriptors.MolWt(x))
+    input_df["logp"] = input_df["structure"].map(lambda x: Chem.Descriptors.MolLogP(x))
+    input_df["numHdonors"] = input_df["structure"].map(lambda x: Chem.Lipinski.NumHDonors(x))
+    input_df["numHacceptors"] = input_df["structure"].map(lambda x: Chem.Lipinski.NumHAcceptors(x))
+    return input_df
 
-# df["structure"]=mol_list
+
+def pIC50(input_df):
+    """Caps IC50 at 100000000 before converting to pIC50 to increase uniformity"""
+    input_df[input_df["standard_value"] > 100000000] = 100000000
+    input_df["pIC50"] = -np.log10(df["standard_value"]*(10**-9))
+    input_df.drop(columns='standard_value', inplace=True)
+    return input_df
+
+
+df = pd.read_csv('CSV/coronavirus_CHEMBL3927_preprocessed.csv')
+
+generate_descriptors(df)
+
+pIC50(df)
 
 print(df)
-
-# MolWt_list = []
-# molLogP_list = []
-# molNumHDonor_list = []
-# molNumHAcceptor_list = []
-#
-# for mol in df["structure"]:
-#     molWt=Descriptors.MolWt(mol)
-#     molLogP = Descriptors.MolLogP(mol)
-#     molNumHDonor = Lipinksi.NumHdonors(mol)
-#     molNumHAcceptor = Lipinski.NumHAcceptors(mol)
-
-#
-#
-# # In[38]:
-#
-#
-# mol_list[4]
-#
-#
-# # In[ ]:
-#
-#
-# desc_MolWt
-#
-#
-# # In[ ]:
-#
-#
-# desc_MolLogP
-#
-#
-# # In[ ]:
-#
-#
-# desc_NumHDonors
-
