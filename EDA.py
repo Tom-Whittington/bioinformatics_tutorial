@@ -1,6 +1,5 @@
 
 from rdkit import Chem
-from rdkit.Chem import Draw
 from rdkit.Chem import Descriptors, Lipinski
 import numpy as np
 import pandas as pd
@@ -25,8 +24,67 @@ def pIC50(input_df):
     input_df["standard_value"][input_df["standard_value"] > 100000000] = 100000000
     input_df["pIC50"] = -np.log10(df["standard_value"]*(10**-9))
     input_df.drop(columns='standard_value', inplace=True)
-    df.to_csv()
     return input_df
+
+
+def plots(input_df):
+    """Generates plot of data"""
+    input_df = input_df[input_df["act_class"] != 'intermediate']
+
+# frequency plot of activity class
+    sns.countplot(x="act_class", data=input_df, edgecolor="black")
+    plt.xlabel('Bioactivity class', fontsize=14, fontweight='bold')
+    plt.ylabel('Frequency', fontsize=14, fontweight='bold')
+    # plt.savefig(condition + ' class frequency plot.svg')
+    # plt.show()
+
+# scatter plot of molecular weight vs logP
+    sns.scatterplot(x="mw", y="logp", data=input_df, hue="act_class", size="pIC50", edgecolor="black", alpha=0.7)
+    plt.xlabel('MW', fontsize=14, fontweight='bold')
+    plt.ylabel('LogP', fontsize=14, fontweight='bold')
+    # plt.savefig(condition + ' MW vs LogP plot.svg')
+    # plt.show()
+
+
+def mannwhitneyu_boxplot(input_df):
+    """"Generates box plots for each of the lipinkski descriptors split via class and then tests significance"""
+    from numpy.random import seed
+    from scipy.stats import mannwhitneyu
+
+    input_df = input_df[input_df["act_class"] != 'intermediate']
+
+    lipinkski_descriptors = ['mw', 'logp', 'numHdonors', 'numHacceptors']
+    for descriptor in lipinkski_descriptors:
+
+        # box plot
+        sns.boxplot(x='act_class', y=descriptor, data=input_df)
+        plt.xlabel('Bioactivity class', fontsize=14, fontweight='bold')
+        plt.ylabel(descriptor, fontsize=14, fontweight='bold')
+        # plt.savefig(condition + ' ' + descriptor + ' box plot.svg')
+
+        # seed random number generator
+        seed(1)
+
+        # filters df based on activity class
+        active = input_df[input_df["act_class"] == 'active'][descriptor]
+        inactive = input_df[input_df["act_class"] == 'inactive'][descriptor]
+
+        stat, p = mannwhitneyu(active, inactive)
+
+        alpha = 0.05
+        if p > alpha:
+            interpretation = 'Same distribution (fail to reject H0)'
+        else:
+            interpretation = 'Different distribution (reject H0)'
+
+        results = pd.DataFrame({'Descriptor': descriptor,
+                                'Statistics': stat,
+                                'p': p,
+                                'alpha': alpha,
+                                'Interpretation': interpretation}, index=[0])
+        print(results)
+        # results.to_csv(condition + ' mannwhitneyu ' + descriptor + '.csv')
+
 
 condition = 'coronavirus'
 
@@ -36,10 +94,6 @@ generate_descriptors(df)
 
 pIC50(df)
 
-df = df[df["act_class"] != 'intermediate']
+plots(df)
 
-sns.countplot(x="act_class", data=df, edgecolor="black")
-plt.xlabel('Bioactivity class', fontsize=14, fontweight='bold')
-plt.ylabel('Frequency', fontsize=14, fontweight='bold')
-plt.savefig(condition + ' class frequency plot.svg')
-plt.show()
+mannwhitneyu_boxplot(df)
