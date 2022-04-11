@@ -1,4 +1,3 @@
-
 from rdkit import Chem
 from rdkit.Chem import Descriptors, Lipinski
 import numpy as np
@@ -24,6 +23,7 @@ def pIC50(input_df):
     input_df["standard_value"][input_df["standard_value"] > 100000000] = 100000000
     input_df["pIC50"] = -np.log10(df["standard_value"]*(10**-9))
     input_df.drop(columns='standard_value', inplace=True)
+    input_df.to_csv('CSV/' + condition + ' processed_data.csv')
     return input_df
 
 

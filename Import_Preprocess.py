@@ -13,7 +13,7 @@ def classifier(x):
         return "intermediate"
 
 
-# TODO: Add input box to allow selecting conditons
+# TODO: Add input box to allow selecting conditions
 
 # condition = easygui.enterbox('What condition are you interested in')
 
