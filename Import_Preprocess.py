@@ -3,6 +3,7 @@ from chembl_webresource_client.new_client import new_client
 import tk
 import easygui
 
+
 def classifier(x):
     """Classifies molecule activity into active, intermediate and inactive vis IC50 value"""
     if x >= 10000:

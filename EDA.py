@@ -36,7 +36,7 @@ def plots(input_df):
     plt.xlabel('Bioactivity class', fontsize=14, fontweight='bold')
     plt.ylabel('Frequency', fontsize=14, fontweight='bold')
     # plt.savefig(condition + ' class frequency plot.svg')
-    # plt.show()
+    plt.show()
 
 # scatter plot of molecular weight vs logP
     sns.scatterplot(x="mw", y="logp", data=input_df, hue="act_class", size="pIC50", edgecolor="black", alpha=0.7)
