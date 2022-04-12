@@ -16,8 +16,6 @@ import tk
 import easygui
 
 
-
-
 def search(condition):
     """Target is selected and searched within the Chembl db before being turned into a dataframe from dict"""
 
@@ -27,7 +25,7 @@ def search(condition):
     target_query = target.search(condition)
     df = pd.DataFrame.from_dict(target_query)
 
-    selected_target = (df["target_chembl_id"].iloc[4])
+    selected_target = (df["target_chembl_id"].iloc[0])
 
     # Now using the target chembl id the database is searched for activity data but only returning results that have
     # activity using IC50.
@@ -39,31 +37,6 @@ def search(condition):
 
     return df
 
-
-def search_molecules(targets):
-    # TODO: Add way of choosing target and saving target name
-    selected_target = targets["target_chembl_id"][4]
-
-    # Now using the target chembl id the database is searched for activity data but only returning results that have
-    # activity using IC50.
-
-    activity = new_client.activity
-    act_query = activity.filter(target_chembl_id=selected_target).filter(standard_type="IC50")
-    df = pd.DataFrame.from_dict(act_query)
-    # df.to_csv(condition + '_' + selected_target + '_' + 'query_raw.csv', index=False)
-
-    return targets
-
-
-def formatter(input_df):
-    """Unneeded columns and NAs are dropped and standard_value is renamed to IC50"""
-    input_df = input_df[["canonical_smiles", "molecule_chembl_id", "standard_value"]]
-    input_df.rename(columns={'standard_value': 'IC50'}, inplace=True)
-    input_df = input_df[input_df["IC50"].notna()]
-    input_df["IC50"] = input_df["IC50"].astype("float")
-    input_df["act_class"] = input_df["IC50"].apply(lambda x: act_classifier(x))
-
-    return input_df
 
 def formatter(input_df):
     """Unneeded columns and NAs are dropped and standard_value is renamed to IC50"""
@@ -126,7 +99,6 @@ def plots(input_df, condition):
 def mannwhitneyu_boxplot(input_df):
     """"Generates box plots for each of the lipinkski descriptors split via class and then tests significance"""
 
-
     plot_df = input_df[input_df["act_class"] != 'intermediate']
 
     lipinkski_descriptors = ['mw', 'logp', 'numHdonors', 'numHacceptors']
@@ -165,9 +137,9 @@ def mannwhitneyu_boxplot(input_df):
 
 # condition = easygui.enterbox('What condition are you interested in')
 
-def padel(df):
-    df = df[["canonical_smiles", "molecule_chembl_id"]]
-    df.to_csv("molecule.smi", sep='\t', index=False, header=False)
+def padel(df, condition):
+    input_df = df[["canonical_smiles", "molecule_chembl_id"]]
+    input_df.to_csv("molecule.smi", sep='\t', index=False, header=False)
 
     padelpy.padeldescriptor(mol_dir='molecule.smi',
                             fingerprints=True,
@@ -175,6 +147,8 @@ def padel(df):
                             standardizenitro=True,
                             descriptortypes='References/PubchemFingerprinter.xml',
                             d_file=condition + ' descriptors.csv')
+
+# TODO: find out why PaDEL is dropping rows
 
     df_desc = pd.read_csv('descriptors.csv')
     os.remove('molecule.smi')
@@ -190,7 +164,6 @@ def padel(df):
 def random_forest(X, y):
     selection = VarianceThreshold(threshold=(.8 * (1 - .8)))
     X = selection.fit_transform(X)
-
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
     np.random.seed(100)
     model = RandomForestRegressor(n_estimators=100)
@@ -216,21 +189,18 @@ def random_forest_plot(y_test, y_pred):
 
 
 def main():
-    condition = 'coronavirus'
-    # search(condition)
-    # search_molecules(targets)
-    df=search(condition)
-    #search_molecules(df)
-    df=formatter(df)
-
+    condition = 'tuberculosis'
+    df = search(condition)
+    df = formatter(df)
     df["act_class"] = df["IC50"].apply(lambda x: act_classifier(x))
     generate_descriptors(df)
     pIC50(df)
     plots(df, condition)
     mannwhitneyu_boxplot(df)
-    padel(df)
+    X, y = padel(df, condition)
     random_forest(X, y)
     random_forest_plot(y_test, y_pred)
+
 
 if __name__ == "__main__":
     main()
