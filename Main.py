@@ -12,20 +12,17 @@ import pandas as pd
 import numpy as np
 import padelpy
 import os
-import tk
 import easygui
 
 
 def search(condition):
     """Target is selected and searched within the Chembl db before being turned into a dataframe from dict"""
 
-    # TODO: Add input box to allow selecting conditions
-
     target = new_client.target
     target_query = target.search(condition)
     df = pd.DataFrame.from_dict(target_query)
 
-    selected_target = (df["target_chembl_id"].iloc[0])
+    selected_target = (df["target_chembl_id"].iloc[4])
 
     # Now using the target chembl id the database is searched for activity data but only returning results that have
     # activity using IC50.
@@ -135,9 +132,8 @@ def mannwhitneyu_boxplot(input_df):
         # results.to_csv(condition + ' mannwhitneyu ' + descriptor + '.csv')
 
 
-# condition = easygui.enterbox('What condition are you interested in')
-
 def padel(df, condition):
+    """Generates molecular fingerprints from smiles"""
     input_df = df[["canonical_smiles", "molecule_chembl_id"]]
     input_df.to_csv("molecule.smi", sep='\t', index=False, header=False)
 
@@ -145,23 +141,21 @@ def padel(df, condition):
                             fingerprints=True,
                             removesalt=True,
                             standardizenitro=True,
-                            descriptortypes='References/PubchemFingerprinter.xml',
-                            d_file=condition + ' descriptors.csv')
+                            descriptortypes='padel/PaDEL-Descriptor/PubchemFingerprinter.xml',
+                            d_file=condition + '_descriptors.csv'
+                            )
 
-# TODO: find out why PaDEL is dropping rows
 
-    df_desc = pd.read_csv('descriptors.csv')
+def random_forest(input_df, condition):
+    """Uses random forest to predict IC50 values"""
+    df_desc = pd.read_csv(condition + '_descriptors.csv')
     os.remove('molecule.smi')
     df_X = df_desc.drop(columns=["Name"])
-    df_y = df["pIC50"]
+    df_y = input_df["pIC50"]
     df_final = pd.concat([df_X, df_y], axis=1)
     X = df_final.drop('pIC50', axis=1)
     y = df_final['pIC50']
 
-    return X, y
-
-
-def random_forest(X, y):
     selection = VarianceThreshold(threshold=(.8 * (1 - .8)))
     X = selection.fit_transform(X)
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
@@ -176,10 +170,11 @@ def random_forest(X, y):
 
 
 def random_forest_plot(y_test, y_pred):
+    """ Plots model"""
     sns.set(color_codes=True)
     sns.set_style("white")
 
-    ax = sns.regplot(y_test, y_pred, scatter_kws={'alpha': 0.4})
+    ax = sns.regplot(x=y_test, y=y_pred, scatter_kws={'alpha': 0.4})
     ax.set_xlabel('Experimental pIC50', fontsize='large', fontweight='bold')
     ax.set_ylabel('Predicted pIC50', fontsize='large', fontweight='bold')
     ax.set_xlim(0, 12)
@@ -189,7 +184,7 @@ def random_forest_plot(y_test, y_pred):
 
 
 def main():
-    condition = 'tuberculosis'
+    condition = easygui.enterbox('What condition are you interested in')
     df = search(condition)
     df = formatter(df)
     df["act_class"] = df["IC50"].apply(lambda x: act_classifier(x))
@@ -197,8 +192,8 @@ def main():
     pIC50(df)
     plots(df, condition)
     mannwhitneyu_boxplot(df)
-    X, y = padel(df, condition)
-    random_forest(X, y)
+    padel(df, condition)
+    y_test, y_pred = random_forest(df, condition)
     random_forest_plot(y_test, y_pred)
 
 
